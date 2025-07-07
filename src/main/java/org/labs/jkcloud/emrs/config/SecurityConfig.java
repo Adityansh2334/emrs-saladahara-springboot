@@ -29,6 +29,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // ✅ Needed for CORS
                         .requestMatchers("/api/admin/login").permitAll()
+                        .requestMatchers("/api/admin/send-otp").permitAll()
+                        .requestMatchers("/api/admin/verify-otp").permitAll()
+                        .requestMatchers("/api/admin/update-password").permitAll()
 
                         // DEV-only endpoint (you'll implement this later)
                         .requestMatchers("/api/dev/manage-admins/update").hasRole("DEV")

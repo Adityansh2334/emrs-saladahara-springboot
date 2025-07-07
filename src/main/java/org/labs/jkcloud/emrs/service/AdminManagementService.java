@@ -13,6 +13,9 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class AdminManagementService {
 
+    private static final String ADMIN_EMAIL = "admin@emrs.com";
+    private static final String ADMIN_USERNAME = "emrs-admin";
+
     private final AdminRepository adminRepository;
 
     private final PasswordEncoder passwordEncoder;
@@ -27,6 +30,17 @@ public class AdminManagementService {
             }
             return adminRepository.save(admin);
         });
+    }
+
+    public void updatePassword(String email, String newPassword) {
+        adminRepository.findByEmail(email).ifPresent(admin -> {
+            admin.setPassword(passwordEncoder.encode(newPassword));
+            adminRepository.save(admin);
+        });
+    }
+
+    public String getAdminEmail() {
+        return ADMIN_EMAIL;
     }
 }
 
