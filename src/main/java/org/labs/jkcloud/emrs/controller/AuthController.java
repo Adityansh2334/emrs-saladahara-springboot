@@ -1,5 +1,6 @@
 package org.labs.jkcloud.emrs.controller;
 
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.labs.jkcloud.emrs.model.OtpVerification;
 import org.labs.jkcloud.emrs.model.VO.*;
@@ -7,10 +8,13 @@ import org.labs.jkcloud.emrs.repository.OtpVerificationRepository;
 import org.labs.jkcloud.emrs.service.AdminManagementService;
 import org.labs.jkcloud.emrs.service.EmailService;
 import org.labs.jkcloud.emrs.util.JwtUtil;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,16 +34,57 @@ public class AuthController {
     private final AdminManagementService adminService;
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody AuthRequest request) {
+    public ResponseEntity<?> login(
+            @RequestBody AuthRequest request,
+            HttpServletResponse response
+    ) {
         try {
             authManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
+                    new UsernamePasswordAuthenticationToken(
+                            request.getUsername(),
+                            request.getPassword()
+                    )
             );
+
             String token = jwtUtil.generateToken(request.getUsername());
-            return ResponseEntity.ok(new AuthResponse(token));
+
+            ResponseCookie cookie = ResponseCookie.from("EMRS_TOKEN", token)
+                    .httpOnly(true)
+                    .secure(true)
+                    .sameSite("None")
+                    .path("/")
+                    .maxAge(8 * 60 * 60)
+                    .build();
+
+            response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+
+            return ResponseEntity.ok(new AuthResponse("Login Successful!",true));
         } catch (AuthenticationException ex) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new AuthResponse("Login Successful!", false));
         }
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletResponse response) {
+        ResponseCookie cookie = ResponseCookie.from("EMRS_TOKEN", "")
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("None")
+                .path("/")
+                .maxAge(0)
+                .build();
+
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        response.setHeader("Cache-Control", "no-store");
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/check-auth")
+    public ResponseEntity<Boolean> checkAuth(Authentication authentication) {
+        // Returns true if user is authenticated
+        boolean isAuthenticated = authentication != null && authentication.isAuthenticated();
+        return ResponseEntity.ok(isAuthenticated);
     }
 
     /** ✅ Send OTP to official admin email */

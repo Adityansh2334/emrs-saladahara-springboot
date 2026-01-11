@@ -32,6 +32,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/send-otp").permitAll()
                         .requestMatchers("/api/admin/verify-otp").permitAll()
                         .requestMatchers("/api/admin/update-password").permitAll()
+                        .requestMatchers("/api/admin/check-auth").permitAll()
 
                         // DEV-only endpoint (you'll implement this later)
                         .requestMatchers("/api/dev/manage-admins/update").hasRole("DEV")
